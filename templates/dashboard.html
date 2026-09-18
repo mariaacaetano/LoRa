@@ -1,0 +1,379 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgroSense</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/agrotech.css' %}">
+</head>
+<body>
+  <main class="container shell py-4">
+    <header class="topbar d-flex justify-content-between align-items-center">
+      <div class="brand">
+        <div class="brand-mark">⌁</div>
+        <div>
+          <div class="eyebrow">AgroSense · LoRaWAN</div>
+          <h1>Central de monitoramento</h1>
+        </div>
+      </div>
+      <div class="d-flex gap-3 align-items-center">
+        <span class="role-pill">● {{ role|title }}</span>
+        <a class="logout" href="{% url 'logout' %}">Sair ↗</a>
+      </div>
+    </header>
+
+    <section class="hero d-flex justify-content-between align-items-end">
+      <div>
+        <div class="eyebrow text-green">Painel operacional</div>
+        <h2>Dados do campo, decisões melhores.</h2>
+        <p>Histórico recente e evolução contínua dos sensores.</p>
+      </div>
+      <button id="simulate" class="btn btn-success px-4">▶ Iniciar simulação</button>
+    </section>
+
+    <section class="metric-card mb-4">
+      <span class="metric-label">Status da simulação</span>
+      <div id="simStatus" class="footer-note mt-1">Parada — clique em iniciar para gerar uma leitura a cada 10 segundos.</div>
+    </section>
+
+    <section class="metrics-grid mb-4">
+      <div class="metric-card">
+        <span class="metric-icon">🌡️</span>
+        <div class="metric-label">Temperatura média</div>
+        <div class="metric-value" id="avgTemp">—</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">💧</span>
+        <div class="metric-label">Umidade média</div>
+        <div class="metric-value" id="avgHum">—</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">📡</span>
+        <div class="metric-label">Leituras carregadas</div>
+        <div class="metric-value" id="count">—</div>
+      </div>
+    </section>
+
+    <section class="overview-grid mb-5">
+      <article class="chart-card">
+        <h3 class="chart-heading">Temperatura média de todos os ambientes</h3>
+        <div class="overview-chart"><canvas id="averageTemp"></canvas></div>
+      </article>
+      <article class="chart-card">
+        <h3 class="chart-heading">Umidade média de todos os ambientes</h3>
+        <div class="overview-chart"><canvas id="averageHum"></canvas></div>
+      </article>
+    </section>
+
+    <section class="history-layout{% if role == 'gestor' %} history-with-alerts{% endif %}">
+      <div class="history-main">
+        <div class="eyebrow text-green mb-3">Histórico por ambiente</div>
+        <div id="sensors" class="sensors-grid"></div>
+      </div>
+      {% if role == 'gestor' %}
+      <aside class="alert-rail" aria-label="Alertas de monitoramento">
+        <section class="alert-card">
+          <div class="alert-heading">
+            <span class="alert-beacon" aria-hidden="true"></span>
+            <div>
+              <div class="eyebrow text-green">Monitoramento</div>
+              <h3>Alertas em tempo real</h3>
+            </div>
+          </div>
+          <ul id="alerts" class="list-group list-group-flush">
+            <li id="noAlerts" class="empty">Nenhum alerta recebido.</li>
+          </ul>
+        </section>
+      </aside>
+      {% endif %}
+    </section>
+    {% if role == 'gestor' %}
+    <div id="toastRegion" class="toast-region" aria-live="assertive" aria-atomic="false"></div>
+    {% endif %}
+  </main>
+
+  <script>
+    let charts = [];
+    let timer = null;
+    let running = false;
+    const csrf = '{{ csrf_token }}';
+    const MAX_POINTS = 6;
+    const MIN_TEMPERATURE = 22.5;
+    const MAX_TEMPERATURE = 25.5;
+    const knownAlertIds = new Set();
+    let alertHistoryInitialized = false;
+
+    function formatTime(item) {
+      if (item.label) return item.label;
+      return new Date(item.timestamp).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function graph(id, readings, label, color) {
+      const points = readings.slice(-MAX_POINTS);
+      const isTemperature = label.includes('Temperatura');
+      const values = points.map(item => isTemperature ? item.temperatura : item.umidade);
+      const lowest = Math.min(...values);
+      const highest = Math.max(...values);
+      const padding = Math.max(isTemperature ? 0.5 : 1, (highest - lowest) * 0.45);
+
+      return new Chart(document.getElementById(id), {
+        type: 'line',
+        data: {
+          labels: points.map(formatTime),
+          datasets: [{
+            label,
+            data: values,
+            borderColor: color,
+            backgroundColor: `${color}18`,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: color,
+            pointBorderWidth: 2,
+            tension: 0.42,
+            cubicInterpolationMode: 'monotone',
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          interaction: { mode: 'index', intersect: false },
+          layout: { padding: { top: 4, right: 12, bottom: 4, left: 4 } },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: '#39483f',
+                font: { size: 15, weight: '600' },
+                boxWidth: 34,
+                boxHeight: 12,
+                padding: 18
+              }
+            },
+            tooltip: {
+              titleFont: { size: 14 },
+              bodyFont: { size: 15 },
+              padding: 12,
+              callbacks: {
+                label(context) {
+                  const unit = isTemperature ? '°C' : '%';
+                  return ` ${label}: ${context.parsed.y.toFixed(1)}${unit}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#e7ece7' },
+              ticks: {
+                color: '#526159',
+                font: { size: 14, weight: '500' },
+                maxRotation: 0,
+                minRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: MAX_POINTS,
+                padding: 8
+              }
+            },
+            y: {
+              min: lowest - padding,
+              max: highest + padding,
+              grid: { color: '#e7ece7' },
+              ticks: {
+                color: '#526159',
+                font: { size: 14, weight: '500' },
+                maxTicksLimit: 6,
+                padding: 8,
+                callback(value) {
+                  return `${Number(value).toFixed(1)}${isTemperature ? '°C' : '%'}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function alertMessage(item) {
+      return `${item.sensor} (${item.setor}) registrou ${item.temperatura.toFixed(1)}°C fora da faixa de 22,5°C a 25,5°C.`;
+    }
+
+    function addAlertToHistory(alert) {
+      const list = document.getElementById('alerts');
+      if (!list) return;
+      knownAlertIds.add(String(alert.id));
+      if (document.querySelector(`[data-alert-id="${alert.id}"]`)) return;
+      document.getElementById('noAlerts')?.remove();
+      const item = document.createElement('li');
+      item.className = 'list-group-item';
+      item.dataset.alertId = alert.id;
+      item.textContent = alert.mensagem;
+      list.prepend(item);
+      while (list.children.length > 8) list.lastElementChild.remove();
+    }
+
+    function renderAlertHistory(readings) {
+      const list = document.getElementById('alerts');
+      if (!list) return;
+      const outsideRange = readings
+        .filter(item => item.temperatura < MIN_TEMPERATURE || item.temperatura > MAX_TEMPERATURE)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 8);
+      const newAlerts = outsideRange.filter(item => !knownAlertIds.has(String(item.id)));
+
+      list.innerHTML = '';
+      if (!outsideRange.length) {
+        list.innerHTML = '<li id="noAlerts" class="empty">Nenhum alerta recebido.</li>';
+        alertHistoryInitialized = true;
+        return;
+      }
+      outsideRange.reverse().forEach(item => addAlertToHistory({
+        ...item,
+        mensagem: alertMessage(item)
+      }));
+      if (alertHistoryInitialized) {
+        newAlerts.reverse().forEach(item => showAlertToast({
+          ...item,
+          mensagem: alertMessage(item)
+        }));
+      }
+      alertHistoryInitialized = true;
+    }
+
+    function showAlertToast(alert) {
+      const region = document.getElementById('toastRegion');
+      if (!region) return;
+      const toast = document.createElement('div');
+      toast.className = 'alert-toast';
+      toast.setAttribute('role', 'alert');
+      toast.innerHTML = `
+        <span class="toast-icon" aria-hidden="true">!</span>
+        <div class="toast-copy">
+          <strong>Alerta de temperatura</strong>
+          <span>${alert.mensagem}</span>
+        </div>
+        <button type="button" class="toast-close" aria-label="Fechar notificação">×</button>`;
+      toast.querySelector('.toast-close').onclick = () => toast.remove();
+      region.append(toast);
+      requestAnimationFrame(() => toast.classList.add('is-visible'));
+      setTimeout(() => {
+        toast.classList.remove('is-visible');
+        setTimeout(() => toast.remove(), 250);
+      }, 7000);
+    }
+
+    async function load() {
+      charts.forEach(chart => chart.destroy());
+      charts = [];
+
+      const response = await fetch(`/api/leituras/?limite=${MAX_POINTS}`);
+      const data = await response.json();
+      const bySensor = {};
+      const groups = {};
+
+      data.forEach(item => {
+        (bySensor[item.sensor] ??= []).push(item);
+        const minute = item.timestamp.slice(0, 16);
+        (groups[minute] ??= []).push(item);
+      });
+
+      const temperatures = data.map(item => item.temperatura);
+      const humidities = data.map(item => item.umidade);
+      count.textContent = data.length;
+      avgTemp.textContent = temperatures.length
+        ? `${(temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length).toFixed(1)}°C`
+        : '—';
+      avgHum.textContent = humidities.length
+        ? `${(humidities.reduce((sum, value) => sum + value, 0) / humidities.length).toFixed(1)}%`
+        : '—';
+
+      renderAlertHistory(data);
+
+      const averages = Object.entries(groups).sort().map(([, values]) => ({
+        label: formatTime(values[0]),
+        temperatura: values.reduce((sum, item) => sum + item.temperatura, 0) / values.length,
+        umidade: values.reduce((sum, item) => sum + item.umidade, 0) / values.length
+      }));
+
+      if (averages.length) {
+        charts.push(graph('averageTemp', averages, 'Temperatura média (°C)', '#168454'));
+        charts.push(graph('averageHum', averages, 'Umidade média (%)', '#3c88ae'));
+      }
+
+      const sensorEntries = Object.entries(bySensor).sort();
+      document.getElementById('sensors').innerHTML = sensorEntries.map(([name, values], index) => {
+        values.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const latest = values.at(-1);
+        const outsideLimit = latest.temperatura < MIN_TEMPERATURE || latest.temperatura > MAX_TEMPERATURE;
+        return `
+          <article class="sensor-card">
+            <header class="sensor-header">
+              <div>
+                <div class="metric-label">${latest.setor}</div>
+                <h3 class="sensor-name">${name}</h3>
+                <div class="footer-note">Última leitura: 🌡️ ${latest.temperatura.toFixed(1)}°C · 💧 ${latest.umidade.toFixed(1)}%</div>
+              </div>
+              <span class="status-badge ${outsideLimit ? 'status-danger' : 'status-normal'}">${outsideLimit ? 'Fora do limite' : 'Operação normal'}</span>
+            </header>
+            <section class="sensor-section">
+              <h4 class="chart-title">Temperatura</h4>
+              <div class="sensor-chart"><canvas id="temp${index}"></canvas></div>
+            </section>
+            <section class="sensor-section">
+              <h4 class="chart-title">Umidade</h4>
+              <div class="sensor-chart"><canvas id="hum${index}"></canvas></div>
+            </section>
+          </article>`;
+      }).join('');
+
+      sensorEntries.forEach(([, values], index) => {
+        values.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        charts.push(graph(`temp${index}`, values, 'Temperatura (°C)', '#168454'));
+        charts.push(graph(`hum${index}`, values, 'Umidade (%)', '#3c88ae'));
+      });
+    }
+
+    async function tick() {
+      await fetch('/api/simular/', { method: 'POST', headers: { 'X-CSRFToken': csrf } });
+      await load();
+      simStatus.textContent = 'Em execução — última leitura agora.';
+    }
+
+    simulate.onclick = () => {
+      running = !running;
+      if (running) {
+        simulate.textContent = '■ Parar simulação';
+        simulate.classList.replace('btn-success', 'btn-danger');
+        simStatus.textContent = 'Em execução — nova leitura a cada 10 segundos.';
+        tick();
+        timer = setInterval(tick, 10000);
+      } else {
+        clearInterval(timer);
+        timer = null;
+        simulate.textContent = '▶ Iniciar simulação';
+        simulate.classList.replace('btn-danger', 'btn-success');
+        simStatus.textContent = 'Parada — histórico recente preservado.';
+      }
+    };
+
+    load();
+
+    {% if role == 'gestor' %}
+    new EventSource('/api/alertas/').onmessage = event => {
+      const alert = JSON.parse(event.data);
+      addAlertToHistory(alert);
+      showAlertToast(alert);
+    };
+    {% endif %}
+  </script>
+</body>
+</html>
