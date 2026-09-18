@@ -1,0 +1,86 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{indentfirst}
+\usepackage{abntex2cite}
+\usepackage{hyperref}
+
+\geometry{top=2.5cm,bottom=2.5cm,left=3cm,right=2cm}
+\setstretch{1.15}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\hypersetup{hidelinks,pdftitle={Infraestrutura LoRaWAN para monitoramento ambiental em instalações de produção animal}}
+
+\begin{document}
+
+\begin{center}
+\textbf{MODALIDADE:} Pesquisa\\
+\textbf{ÁREA TEMÁTICA:} Tecnologia e inovação aplicada ao meio rural\\
+\textbf{TIPO DE TRABALHO:} Projeto em andamento
+
+\vspace{0.7cm}
+\textbf{INFRAESTRUTURA LoRaWAN PARA MONITORAMENTO AMBIENTAL EM INSTALAÇÕES DE PRODUÇÃO ANIMAL}
+
+\vspace{0.2cm}
+Maria Fernanda Caetano$^{1}$; Marcio Marcelo Piffer$^{2}$
+
+\smallskip
+\small $^{1}$Bacharelado em Sistemas de Informação, Instituto Federal Catarinense -- Campus Araquari;\\
+$^{2}$Orientador, Instituto Federal Catarinense -- Campus Araquari.
+\end{center}
+
+\section*{RESUMO}
+O monitoramento das condições ambientais em instalações de produção animal é relevante para o manejo, o bem-estar, o ensino e a pesquisa, mas a distribuição das baias e a ausência de infraestrutura de rede em alguns pontos dificultam a coleta contínua. Este trabalho apresenta o projeto de uma infraestrutura baseada em LoRaWAN para monitorar temperatura e, quando aplicável, umidade relativa nos setores de bovinocultura, suinocultura e avicultura do Instituto Federal Catarinense -- Campus Araquari. A pesquisa é aplicada, exploratória e de natureza projetiva. Foram analisados os requisitos dos ambientes, estudos sobre redes de sensores em aplicações agropecuárias e artefatos técnicos produzidos na disciplina de Projeto de Redes. A solução prevê sensores alimentados por bateria, um gateway multicanal, comunicação em 915 MHz, serviços em nuvem e uma aplicação web para armazenamento, visualização histórica e alertas. A literatura indica que variáveis ambientais também podem apoiar a investigação da presença de moscas e da higiene de matrizes suínas. Como resultado parcial, foi consolidada uma arquitetura expansível, com critérios de validação para cobertura, entrega de mensagens, autonomia e precisão. A implantação física e a medição de desempenho ainda serão realizadas no campus.
+
+\noindent\textbf{Palavras-chave:} LoRaWAN; Internet das Coisas; monitoramento ambiental; produção animal; pecuária de precisão.
+
+\section{INTRODUÇÃO}
+
+A pecuária de precisão emprega sensores, conectividade e sistemas de informação para transformar medições do ambiente e dos animais em apoio à decisão. Essa abordagem pode complementar as inspeções presenciais ao produzir séries históricas, permitir alertas e apoiar análises realizadas por responsáveis, docentes e estudantes. Revisões sobre Internet das Coisas aplicada à produção animal destacam o crescimento dessas soluções, mas também apontam desafios relacionados à autonomia energética, à conectividade e à validação em campo \cite{alves2025}.
+
+No Instituto Federal Catarinense (IFC) -- Campus Araquari, os setores de bovinocultura, suinocultura e avicultura atendem atividades de ensino, pesquisa e extensão. O acompanhamento ambiental nesses espaços pode envolver observações manuais e medições pontuais, dificultando a comparação entre setores e a identificação de variações ao longo do dia. A ausência de uma infraestrutura única também reduz a disponibilidade de dados para estudos posteriores e para a identificação rápida de condições que demandem atenção.
+
+As redes de área ampla e baixa potência (\textit{Low-Power Wide-Area Networks} -- LPWAN) são adequadas a esse tipo de aplicação por combinarem alcance, baixo consumo e capacidade de transmitir mensagens pequenas e esparsas. Em aplicações agropecuárias, a tecnologia LoRaWAN já foi utilizada para monitoramento remoto de informações ambientais, mas o desempenho depende de obstáculos, distância, vegetação, antenas e configuração do rádio \cite{fu2022,ahmed2025,ting2024}. Assim, uma proposta para o campus deve ser acompanhada de critérios de validação no local, e não apenas de estimativas nominais dos equipamentos.
+
+Além do conforto térmico, o monitoramento ambiental pode apoiar indicadores sanitários e de manejo. Trabalhos apresentados no X CONEA, VII CETASC e XIII ENEASC relacionaram temperatura, umidade relativa e precipitação à presença de moscas e à limpeza corporal de matrizes suínas mantidas em sistema intensivo de cama sobreposta. Em uma das análises, foi observado aumento médio de 0,106 unidade no escore de moscas para cada aumento de 1\,°C; em uma análise conjunta, as variáveis ambientais explicaram 43,7\% da variabilidade observada, embora o modelo não tenha sido significativo \cite{macedo_moraes_cruz2026}. Esses achados não definem limites de alerta, mas reforçam a utilidade de séries temporais ambientais para investigação e manejo.
+
+Diante desse contexto, o objetivo geral é projetar uma infraestrutura LoRaWAN para monitoramento ambiental das instalações de produção animal do IFC Campus Araquari. Especificamente, busca-se consolidar os requisitos, definir a arquitetura de comunicação e serviços, estabelecer critérios de validação e discutir as contribuições da solução para o manejo, o ensino e a pesquisa.
+
+\section{METODOLOGIA}
+
+O trabalho caracteriza-se como pesquisa aplicada, exploratória e de natureza projetiva. O objeto de estudo é uma solução de rede para uma necessidade institucional, e não uma comparação experimental entre protocolos. O local de aplicação considerado é o IFC Campus Araquari, nos setores de bovinocultura, suinocultura e avicultura. A implantação física completa ainda não foi realizada; por isso, os indicadores de desempenho são tratados como metas de validação.
+
+O desenvolvimento foi organizado em cinco etapas: análise dos setores e identificação dos pontos de monitoramento; levantamento de requisitos funcionais, não funcionais e restrições; revisão de documentos sobre LoRa, LoRaWAN, Internet das Coisas, monitoramento agropecuário, energia e propagação; elaboração da topologia, especificação dos equipamentos e definição dos critérios de qualidade; e consolidação dos artefatos técnicos produzidos na disciplina de Projeto de Redes.
+
+Os requisitos funcionais incluem coleta periódica de temperatura, recepção pelo gateway, persistência em banco de dados, consulta ao histórico, visualização em aplicação web e geração de alertas. Os requisitos não funcionais abrangem baixo consumo, operação remota, integridade, segurança, expansibilidade e interface responsiva. A solução de referência utiliza seis sensores Dragino LHT65N-DC, um gateway Dragino LPS8N, comunicação na faixa de 915 MHz, serviços gerenciados em nuvem e uma aplicação web.
+
+Para a avaliação futura, serão observados cobertura, razão de entrega de pacotes, RSSI, SNR, latência, autonomia e precisão das medições. O posicionamento dos dispositivos deverá considerar paredes, estruturas metálicas, vegetação e distância entre os pontos. A coleta de dados será confrontada com medições de referência e com registros dos responsáveis pelos setores, respeitando os procedimentos institucionais aplicáveis.
+
+\section{RESULTADOS E DISCUSSÃO}
+
+Como resultado parcial, foi consolidada uma arquitetura de rede em que os sensores distribuídos transmitem mensagens ao gateway LoRaWAN, que atua como ponte entre o enlace de rádio e a rede IP. Os dados seguem para serviços de ingestão, processamento e armazenamento, sendo disponibilizados para consulta histórica e geração de alertas. A separação desses componentes favorece a rastreabilidade e permite ampliar partes da solução sem alterar todos os dispositivos instalados.
+
+O uso de sensores alimentados por bateria reduz a dependência de pontos elétricos junto às baias. A comunicação LoRaWAN é compatível com mensagens periódicas de poucos bytes e pode atender áreas nas quais uma rede local convencional exigiria cabeamento ou múltiplos pontos de acesso. Entretanto, o alcance não é garantido pela especificação nominal: estudos reportam desempenho elevado em determinadas condições, enquanto vegetação e características do ambiente podem reduzir a entrega de pacotes \cite{fu2022,ahmed2025}. Por isso, a validação no campus é indispensável.
+
+A arquitetura também amplia o valor dos dados coletados. Em vez de observações isoladas, o sistema poderá produzir séries temporais para comparar setores, horários e condições meteorológicas. No caso da suinocultura, os trabalhos apresentados em eventos técnico-científicos sugerem que registros de temperatura, umidade e precipitação podem ser relacionados à presença de moscas e à higiene corporal das matrizes \cite{macedo_moraes_cruz2026}. A proposta não transforma automaticamente essas associações em regras de controle: os limites de alerta deverão ser definidos posteriormente com base na espécie, idade, sistema de criação e orientação dos profissionais responsáveis.
+
+Entre as limitações atuais estão a ausência de implantação completa, a inexistência de medições de cobertura no campus e a não definição dos limiares térmicos de alerta. A autonomia também dependerá do intervalo de medição, do tamanho dos pacotes, do fator de espalhamento e do número de transmissões. Estratégias de redução de tráfego e compressão temporal podem contribuir para prolongar a vida das baterias \cite{vaananen2022,krizanovic2023}. Desse modo, a solução deve ser entendida como uma infraestrutura projetada e ainda em fase de validação, não como um sistema cujo desempenho já tenha sido comprovado em campo.
+
+\section{CONSIDERAÇÕES FINAIS}
+
+O trabalho apresentou o projeto de uma infraestrutura LoRaWAN para monitoramento ambiental nas instalações de produção animal do IFC Campus Araquari. A proposta articula sensores de baixo consumo, gateway multicanal, conectividade IP, serviços em nuvem, armazenamento, visualização histórica e alertas. A organização da solução é coerente com a distribuição espacial dos setores e com a necessidade de coletar mensagens pequenas em intervalos regulares.
+
+A principal contribuição nesta etapa é a consolidação de uma arquitetura expansível e de um conjunto de critérios para sua validação. Os dados poderão apoiar inspeções, atividades de ensino, pesquisas e análises de relações entre ambiente e indicadores de manejo, como a presença de moscas em instalações suínas. A continuidade do trabalho envolve instalar os dispositivos, medir a cobertura, avaliar a autonomia e ajustar os limiares de alerta com os responsáveis pelos setores. Somente após essas etapas será possível afirmar o desempenho efetivo da infraestrutura no campus.
+
+\section{REFERÊNCIAS}
+\begingroup
+\renewcommand{\section}[2]{}
+\bibliographystyle{abntex2-alf}
+\bibliography{referencias}
+\endgroup
+
+\end{document}
